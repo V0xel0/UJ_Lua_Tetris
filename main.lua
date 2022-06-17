@@ -89,6 +89,7 @@ end
 -- TODO: pack cell_count with field
 local function check_collision(tetromino, field)
 	local has_collided = false
+
 	for i = 1, #tetromino, 1 do
 		local t_x, t_y = tetromino[i].x, tetromino[i].y
 		local field_block = field[(t_x+1) + t_y * cell_count_w]
@@ -98,11 +99,13 @@ local function check_collision(tetromino, field)
 				has_collided = true
 		end
 	end
+
 	return has_collided
 end
 
-local function move_tetromino(tetromino, offset)
+local function move_pos(tetromino, offset)
 	local new_pos = {}
+
 	for i = 1, #tetromino, 1 do
 		new_pos[i] = tetromino[i] + offset
 	end
@@ -111,6 +114,8 @@ local function move_tetromino(tetromino, offset)
 	if has_collided == false then
 		copy_positions(new_pos, tetromino)
 	end
+
+	return has_collided
 end
 
 function love.load()
@@ -171,10 +176,16 @@ function love.keypressed(key)
 		active_tetro_type = math.max(1, (active_tetro_type + 1) % 8)
 	end
 	if key == 'left' then
-		move_tetromino(active_tetro, Vec2(-1, 0))
+		move_pos(active_tetro, Vec2(-1, 0))
 	end
 	if key == 'right' then
-		move_tetromino(active_tetro, Vec2(1, 0))
+		move_pos(active_tetro, Vec2(1, 0))
+	end
+	if key == 'down' then
+		local has_collided = false
+		while has_collided == false do
+			has_collided = move_pos(active_tetro, Vec2(0, 1))
+		end
 	end
 end
 
