@@ -34,6 +34,10 @@ local resumed_from_animation = true
 local score = 0
 local lines_rows = {}
 
+local audio_song
+local audio_sfx_line
+local audio_sfx_fall
+
 local tetromino_type = enum {
 	"i",
 	"j",
@@ -152,6 +156,13 @@ function love.load()
 	love.window.setTitle("Tetris Kacper Łuczak")
 	love.graphics.setNewFont(64)
 
+	audio_song = love.audio.newSource("assets/tetris_sound_a.mp3", "stream")
+	audio_song:setLooping(true)
+    audio_song:play()
+
+	audio_sfx_line = love.audio.newSource("assets/tetris_sfx_line.wav", "static")
+	audio_sfx_fall = love.audio.newSource("assets/tetris_sfx_fall.wav", "static")
+
 	for i = 1, cell_count_h * cell_count_w, 1 do
 		table.insert(playfield, '.')
 	end
@@ -209,6 +220,7 @@ function love.keypressed(key)
 			has_collided = move_pos(active_tetro, Vec2(0, 1))
 		end
 		time_acc = time_interval
+		audio_sfx_fall:play()
 	end
 end
 
@@ -241,6 +253,7 @@ function love.update(dt)
 
 			animation_acc = 0
 			resumed_from_animation = true
+			audio_sfx_line:play()
 		end
 	end
 
