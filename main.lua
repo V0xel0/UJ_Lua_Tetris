@@ -46,7 +46,7 @@ local cell_colors = {
 local playfield = {} -- 0,0 cell is top left
 
 local active_angle = 1
-local active_tetro_type = tetromino_type.o
+local active_tetro_type = tetromino_type.t
 local active_tetro = { Vec2(0, 0), Vec2(0, 0), Vec2(0, 0), Vec2(0, 0) } -- every tetromino is four invidual pieces, the first one is the rotation origin
 local spawn_offsets = { -- offsets from origin of every tetromino type piece, first is origin itself (its offset is from playfield) then rest of pieces from top-left to right bottom
 	{ Vec2(4, 0), Vec2(-1,  0), Vec2( 1,  0), Vec2(2,  0) },
@@ -57,7 +57,7 @@ local spawn_offsets = { -- offsets from origin of every tetromino type piece, fi
 	{ Vec2(4, 1), Vec2(-1,  0), Vec2( 0, -1), Vec2(1,  0) },
 	{ Vec2(4, 1), Vec2(-1, -1), Vec2( 0, -1), Vec2(1,  0) },
 }
-local kick_offsets = {
+local kick_offsets = { -- SRS offsets for each rotation state, ex: to get kick offset when coming from state 1 to 2, subtract nth kick of 1 from nth kick of 2
 	-- j,l,s,t,z
 	{
 		{ Vec2(0, 0), Vec2( 0, 0), Vec2( 0, 0), Vec2(0,  0), Vec2( 0,  0) },
@@ -82,15 +82,37 @@ local kick_offsets = {
 }
 
 local function move_tetromino(tetromino, offset)
-	local out = tetromino
+	local out = {}
 	for i = 1, #tetromino, 1 do
-		out[i] = out[i] + offset
+		out[i] = tetromino[i] + offset
 	end
 	return out
 end
 
+local function copy_positions(from, to)
+	for i = 1, #to, 1 do
+		to[i] = from[i]
+	end
+end
+-- TODO: pack cell_count with field
+local function check_collision(tetromino, field)
+	local has_collided = false
+	for i = 1, #tetromino, 1 do
+		local t_x, t_y = tetromino[i].x, tetromino[i].y
+		local field_block = field[t_x + t_y * cell_count_w]
+
+		if t_x >= 0 and t_x < cell_count_w and
+		   t_y >= 0 and t_y < cell_count_h then
+			if  field_block ~= '.' then
+				has_collided = true
+			end
+		end
+	end
+	return has_collided
+end
+
 function love.load()
-	love.window.setMode(screen_size_px, screen_size_px, {resizable=false, vsync=false, minwidth=screen_size_px, minheight=screen_size_px})
+	love.window.setMode(screen_size_px, screen_size_px, { resizable=false, vsync=false, minwidth=screen_size_px, minheight=screen_size_px })
 	love.window.setTitle("Tetris Kacper Łuczak")
 	local target_fps = 60
 	local dt = 1 / target_fps
@@ -147,7 +169,11 @@ function love.keypressed(key)
 		active_tetro_type = math.max(1, (active_tetro_type + 1) % 8)
 	end
 	if key == 'left' then
-		move_tetromino(active_tetro, Vec2(-1, 0))
+		local new_pos = move_tetromino(active_tetro, Vec2(-1, 0))
+		local has_collided = check_collision(new_pos, playfield)
+		if has_collided ~= true then
+			copy_positions(new_pos, active_tetro)
+		end
 	end
 	if key == 'right' then
 		move_tetromino(active_tetro, Vec2(1, 0))
