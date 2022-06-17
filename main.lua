@@ -49,13 +49,13 @@ local active_angle = 1
 local active_tetro_type = tetromino_type.t
 local active_tetro = { Vec2(0, 0), Vec2(0, 0), Vec2(0, 0), Vec2(0, 0) } -- every tetromino is four invidual pieces, the first one is the rotation origin
 local spawn_offsets = { -- offsets from origin of every tetromino type piece, first is origin itself (its offset is from playfield) then rest of pieces from top-left to right bottom
-	{ Vec2(4, 0), Vec2(-1,  0), Vec2( 1,  0), Vec2(2,  0) },
-	{ Vec2(4, 1), Vec2(-1, -1), Vec2(-1,  0), Vec2(1,  0) },
-	{ Vec2(4, 1), Vec2(-1,  0), Vec2( 1,  0), Vec2(1, -1) },
-	{ Vec2(4, 1), Vec2( 0, -1), Vec2( 1, -1), Vec2(1,  0) },
-	{ Vec2(4, 1), Vec2(-1,  0), Vec2( 0, -1), Vec2(1, -1) },
-	{ Vec2(4, 1), Vec2(-1,  0), Vec2( 0, -1), Vec2(1,  0) },
-	{ Vec2(4, 1), Vec2(-1, -1), Vec2( 0, -1), Vec2(1,  0) },
+	[tetromino_type.i] = { Vec2(4, 0), Vec2(-1,  0), Vec2( 1,  0), Vec2(2,  0) },
+	[tetromino_type.j] = { Vec2(4, 1), Vec2(-1, -1), Vec2(-1,  0), Vec2(1,  0) },
+	[tetromino_type.l] = { Vec2(4, 1), Vec2(-1,  0), Vec2( 1,  0), Vec2(1, -1) },
+	[tetromino_type.o] = { Vec2(4, 1), Vec2( 0, -1), Vec2( 1, -1), Vec2(1,  0) },
+	[tetromino_type.s] = { Vec2(4, 1), Vec2(-1,  0), Vec2( 0, -1), Vec2(1, -1) },
+	[tetromino_type.t] = { Vec2(1, 1), Vec2(-1,  0), Vec2( 0, -1), Vec2(1,  0) },
+	[tetromino_type.z] = { Vec2(4, 1), Vec2(-1, -1), Vec2( 0, -1), Vec2(1,  0) },
 }
 local kick_offsets = { -- SRS offsets for each rotation state, ex: to get kick offset when coming from state 1 to 2, subtract nth kick of 1 from nth kick of 2
 	-- j,l,s,t,z
@@ -81,14 +81,6 @@ local kick_offsets = { -- SRS offsets for each rotation state, ex: to get kick o
 	}
 }
 
-local function move_tetromino(tetromino, offset)
-	local out = {}
-	for i = 1, #tetromino, 1 do
-		out[i] = tetromino[i] + offset
-	end
-	return out
-end
-
 local function copy_positions(from, to)
 	for i = 1, #to, 1 do
 		to[i] = from[i]
@@ -99,16 +91,26 @@ local function check_collision(tetromino, field)
 	local has_collided = false
 	for i = 1, #tetromino, 1 do
 		local t_x, t_y = tetromino[i].x, tetromino[i].y
-		local field_block = field[t_x + t_y * cell_count_w]
+		local field_block = field[(t_x+1) + t_y * cell_count_w]
 
-		if t_x >= 0 and t_x < cell_count_w and
-		   t_y >= 0 and t_y < cell_count_h then
-			if  field_block ~= '.' then
+		if t_x >= cell_count_w or t_x < 0 or 
+		   t_y >= cell_count_h or field_block ~= '.' then
 				has_collided = true
-			end
 		end
 	end
 	return has_collided
+end
+
+local function move_tetromino(tetromino, offset)
+	local new_pos = {}
+	for i = 1, #tetromino, 1 do
+		new_pos[i] = tetromino[i] + offset
+	end
+
+	local has_collided = check_collision(new_pos, playfield)
+	if has_collided == false then
+		copy_positions(new_pos, tetromino)
+	end
 end
 
 function love.load()
@@ -129,7 +131,7 @@ end
 
 function love.keypressed(key)
 	if key == 'space' then
-		local is_collision = false
+		local has_collided = false
 		local tetro_kicks = 0
 		local next_angle = math.max(1, (active_angle + 1) % 5)
 
@@ -155,9 +157,9 @@ function love.keypressed(key)
 			for i = 1, #active_tetro, 1 do
 				kick_pos[i] = rot_pos[i] + (kick_offsets[tetro_kicks][active_angle][ik] - kick_offsets[tetro_kicks][next_angle][ik])
 			end
-			-- check_collision(newpos)
-			if is_collision == false then
-				active_tetro = kick_pos
+			has_collided = check_collision(kick_pos, playfield)
+			if has_collided == false then
+				copy_positions(kick_pos, active_tetro)
 				break;
 			end
 		end
@@ -169,11 +171,7 @@ function love.keypressed(key)
 		active_tetro_type = math.max(1, (active_tetro_type + 1) % 8)
 	end
 	if key == 'left' then
-		local new_pos = move_tetromino(active_tetro, Vec2(-1, 0))
-		local has_collided = check_collision(new_pos, playfield)
-		if has_collided ~= true then
-			copy_positions(new_pos, active_tetro)
-		end
+		move_tetromino(active_tetro, Vec2(-1, 0))
 	end
 	if key == 'right' then
 		move_tetromino(active_tetro, Vec2(1, 0))
@@ -199,7 +197,6 @@ function love.draw()
 	end
 	-- Active tetromino draw
 	for i = 1, #active_tetro, 1 do
-		-- local rotate_it = angles_it[active_angle](x-1, y-1) + 1
 		local playfield_x = active_tetro[i].x * cell_size_px
 		local playfield_y = active_tetro[i].y * cell_size_px
 
