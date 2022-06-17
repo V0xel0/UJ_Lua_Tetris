@@ -150,6 +150,7 @@ end
 function love.load()
 	love.window.setMode(screen_size_px, screen_size_px, { resizable=false, vsync=false, minwidth=screen_size_px, minheight=screen_size_px })
 	love.window.setTitle("Tetris Kacper Łuczak")
+	love.graphics.setNewFont(64)
 
 	for i = 1, cell_count_h * cell_count_w, 1 do
 		table.insert(playfield, '.')
@@ -334,4 +335,12 @@ function love.draw()
 							cell_draw_size_px, cell_draw_size_px )
 	end
 
+	-- Text
+	love.graphics.setColor(1, 1, 1)
+	love.graphics.setNewFont(64)
+	love.graphics.print("Score:", 0.7 * screen_size_px - 70, 330)
+	love.graphics.print(score, 0.7 * screen_size_px, 400)
+	love.graphics.setNewFont(36)
+	love.graphics.print("Space to rotate", 0.7 * screen_size_px - 70, 700)
+	love.graphics.print("Arrows to move", 0.7 * screen_size_px - 70, 750)
 end
