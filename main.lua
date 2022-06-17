@@ -35,6 +35,7 @@ local score = 0
 local lines_rows = {}
 
 local audio_song
+local audio_defeat
 local audio_sfx_line
 local audio_sfx_fall
 
@@ -160,6 +161,7 @@ function love.load()
 	audio_song:setLooping(true)
     audio_song:play()
 
+	audio_defeat = love.audio.newSource("assets/tetris_sound_defeat.mp3", "static")
 	audio_sfx_line = love.audio.newSource("assets/tetris_sfx_line.wav", "static")
 	audio_sfx_fall = love.audio.newSource("assets/tetris_sfx_fall.wav", "static")
 
@@ -298,7 +300,18 @@ function love.update(dt)
 
 		-- check for defeat
 		if check_collision(active_tetro, playfield) == true then
-			love.event.quit()
+			audio_defeat:play()
+			-- reset board
+			for y = 1, cell_count_h, 1 do
+				for x = 1, cell_count_w, 1 do
+					playfield[x + (y-1) * cell_count_w] = '.'
+				end
+			end
+			score = 0
+			time_acc = 0
+			animation_acc = 0
+			resumed_from_animation = true
+			spawn_new_tetromino(active_tetro)
 		end
 	end
 
